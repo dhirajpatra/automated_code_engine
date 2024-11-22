@@ -1,4 +1,4 @@
-# Ollama: A Microservices Code Generation Engine Powered by OpenAI**
+# Ollama: A Microservices Code Generation Engine Powered by OpenAI
 
 Ollama is a powerful application that leverages OpenAI's capabilities to automate microservices code generation, streamlining your development process. It seamlessly transforms front-end code (Dart) or API descriptions (Swagger) into complete back-end infrastructure, comprising:
 
