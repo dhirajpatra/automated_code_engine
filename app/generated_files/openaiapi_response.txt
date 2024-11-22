@@ -1,0 +1,162 @@
+### Folder Structure
+```
+app/
+    __init__.py
+    main.py
+models/
+    __init__.py
+    user.py
+schemas/
+    __init__.py
+    user.py
+routes/
+    __init__.py
+    auth.py
+database.py
+requirements.txt
+```
+
+#### File Contents
+
+**app/__init__.py**
+```python
+# This file is intentionally left blank.
+```
+
+**app/main.py**
+```python
+from fastapi import FastAPI
+from routes.auth import router as auth_router
+from database import engine, Base
+
+# Create the FastAPI app instance
+app = FastAPI()
+
+# Create the database tables
+Base.metadata.create_all(bind=engine)
+
+# Include the authentication routes
+app.include_router(auth_router)
+```
+
+**models/__init__.py**
+```python
+# This file is intentionally left blank.
+```
+
+**models/user.py**
+```python
+from sqlalchemy import Column, Integer, String
+from database import Base
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+```
+
+**schemas/__init__.py**
+```python
+# This file is intentionally left blank.
+```
+
+**schemas/user.py**
+```python
+from pydantic import BaseModel, EmailStr
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    confirmPassword: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    username: str
+    email: EmailStr
+
+    class Config:
+        orm_mode = True
+```
+
+**routes/__init__.py**
+```python
+# This file is intentionally left blank.
+```
+
+**routes/auth.py**
+```python
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from models.user import User
+from schemas.user import UserCreate, UserLogin, UserResponse
+from database import get_db
+from passlib.context import CryptContext
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+
+router = APIRouter()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+@router.post("/api/v1/auth/register", response_model=UserResponse, status_code=201)
+def register(user: UserCreate, db: Session = Depends(get_db)):
+    if user.password != user.confirmPassword:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    
+    hashed_password = pwd_context.hash(user.password)
+    db_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
+
+    try:
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Username or email already exists")
+
+    return db_user
+
+@router.post("/api/v1/auth/login", response_model=UserResponse)
+def login(user: UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.username == user.username).first()
+    if not db_user or not pwd_context.verify(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    return db_user
+```
+
+**database.py**
+```python
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.engine import Engine
+
+DATABASE_URL = "sqlite:///./test.db"  # Replace with your actual database URL
+
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+def get_db() -> Session:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+```
+
+**requirements.txt**
+```
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+passlib[bcrypt]
+```

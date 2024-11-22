@@ -1,0 +1,24 @@
+fastapi==0.114.2
+# openai==1.45.0
+langchain-openai==0.2.0
+uvicorn==0.32.0
+langchain-core==0.3.0
+langchain==0.3.0
+langchain-community==0.3.0
+langchain-text-splitters==0.3.0
+langchain-chroma==0.1.4
+langchain-openai==0.2.0
+datasets==3.0.0
+fastembed==0.3.6
+redis==5.0.8
+uuid==1.30
+sentence-transformers==3.1.0
+langchain-huggingface==0.1.0
+python-dotenv==1.0.1
+SQLAlchemy==2.0.34
+psycopg2-binary==2.9.9
+pydantic==2.9.1
+# alembic==1.13.2
+passlib==1.7.4
+bcrypt==4.0.1
+python-multipart

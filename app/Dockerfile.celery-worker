@@ -1,0 +1,29 @@
+FROM python:3.11-slim AS base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH="/app"
+
+# Set working directory
+WORKDIR /app
+
+
+# Create a virtual environment
+RUN python3.11 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy and install stable requirements (this layer is cached unless requirements_stable.txt changes)
+COPY requirements_stable.txt ./
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements_stable.txt
+
+# Copy normal requirements file and install normal dependencies
+# This will only run if requirements.txt changes
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Expose port for the FastAPI server
+EXPOSE 8001
+
+# Run the Celery
+CMD ["sh", "-c", "celery -A tasks.celery worker --loglevel=info"]

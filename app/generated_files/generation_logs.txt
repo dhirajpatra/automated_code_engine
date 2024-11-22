@@ -1,0 +1,21 @@
+No folder structure found in response.
+
+
+Folder Structure created
+
+Now creating files in it
+
+
+No file contents section found in the response.
+Created folder: /app/generated_files/app
+Created folder: /app/generated_files/routes
+Created folder: /app/generated_files/schemas
+Created folder: /app/generated_files/models
+
+
+Folder Structure created
+
+Now creating files in it
+
+
+An error occurred in extract_and_save_code: 'list' object has no attribute 'group'
