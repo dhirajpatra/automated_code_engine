@@ -64,86 +64,56 @@ def create_folder_structure(base_folder: str, response: str, log_file_path: str)
 
 def extract_and_save_code(base_folder: str, response: str, log_file_path: str) -> bool:
     """
-    Extract and save the code files based on the response in a two-step process:
-    1. Extract the whole content from the ### File Contents section.
-    2. Extract and save each specific file from its content.
-
-    Args:
-        base_folder (str): The base directory where folders will be created.
-        response (str): The response string containing folder structure and file contents.
-        log_file_path (str): Path to the log file where logs will be written.
-
-    Returns:
-        bool: True or False, indicating success or failure.
+    Extract and save code files based on the OpenAI response.
     """
     try:
         if not response.strip():
             log_to_file(log_file_path, "Response is empty. No files to generate.")
             return False
-        
-        # log_to_file(log_file_path, f"Response received: {response}")  # Debugging output
+
+        # Step 1: Create folder structure
         create_folder_structure(base_folder, response, log_file_path)
-        log_to_file(log_file_path, "\n\nFolder Structure created\n\nNow creating files in it\n\n")
-        # log_to_file(log_file_path, f"Response received: {response}")
+        log_to_file(log_file_path, "\n\nFolder structure created.\n\nNow creating files...\n\n")
 
-        # Step 1: Extract the whole content under ### File Contents
-        patterns = [
-            re.compile(r'### File Contents\n(.*?)(?=\n###|\Z)', re.DOTALL),
-            re.compile(r'### Code Files\n(.*?)(?=\n###|\Z)', re.DOTALL),
-            re.compile(r'(?i)(?:file|contents?):?\s*`([\w/]+\.py|requirements\.txt)`\s*```(?:python|plaintext)?\n(.*?)```', re.DOTALL),
-            re.compile(r'File\s*([\w/]+\.py|requirements\.txt):?\n```(?:python|plaintext)?\n(.*?)```', re.DOTALL),
-            re.compile(r'#### File: `([\w/]+\.py|requirements\.txt)`\n```(?:python|plaintext)?\n(.*?)```', re.DOTALL),
-        ]
-
-        matches = []
-        for pattern in patterns:
-            matches = pattern.findall(response)
-            if matches:
-                break  # Exit loop if matches found
-
-        # # Step 1: Extract the whole content under ### File Contents
-        # file_contents_pattern = re.compile(
-        #     r'### File Contents\n(.*?)(?=\n###|\Z)', re.DOTALL
-        # )
-        # matches = file_contents_pattern.search(response)
-
-        if not matches:
-            log_to_file(log_file_path, "No file contents section found in the response.")
+        # Step 2: Extract file contents
+        sections = response.split('#### File Contents', 1)
+        if len(sections) < 2:
+            log_to_file(log_file_path, "No '#### File Contents' section found.")
             return False
 
-        file_contents = matches.group(1).strip()
-        log_to_file(log_file_path, f"Extracted File Contents:\n{file_contents}")
+        file_contents_section = sections[1].strip()
 
-        # Step 2: Extract each specific file and save it
+        # Step 3: Match file blocks using updated regex
         file_pattern = re.compile(
-            r'#### ([\w/]+\.py|requirements\.txt)\n```(?:python|plaintext)?\n(.*?)```',
+            r'\*\*([\w/]+\.py|requirements\.txt)\*\*\n```(?:python|plaintext)?\n(.*?)```',
             re.DOTALL
         )
-
-        matches = file_pattern.findall(file_contents)
+        matches = file_pattern.findall(file_contents_section)
 
         if not matches:
-            log_to_file(log_file_path, "No files found within the File Contents section.")
+            log_to_file(log_file_path, "No files found within the 'File Contents' section.")
             return False
 
-        for match in matches:
-            file_path = match[0]
-            file_content = match[1].strip()
-            full_file_path = os.path.join(base_folder, file_path)
+        log_to_file(log_file_path, f"Files detected: {len(matches)}")
 
-            # Create parent directories if they don't exist
+        # Step 4: Save matched files
+        for match in matches:
+            file_path = match[0]  # Extract file path (e.g., app/main.py)
+            file_content = match[1].strip()  # Extract file content
+
+            # Full path for the file
+            full_file_path = os.path.join(base_folder, file_path)
             os.makedirs(os.path.dirname(full_file_path), exist_ok=True)
 
-            # Write the file content to the file
-            with open(full_file_path, 'w+') as f:
+            # Write content to the file
+            with open(full_file_path, 'w') as f:
                 f.write(file_content)
-                log_to_file(log_file_path, f"Written file: {full_file_path}")
+                log_to_file(log_file_path, f"File created: {full_file_path}")
 
         return True
 
     except Exception as e:
-        log_to_file(log_file_path, f"An error occurred in extract_and_save_code: {e}")
+        log_to_file(log_file_path, f"An error occurred: {e}")
         return False
-
 
     

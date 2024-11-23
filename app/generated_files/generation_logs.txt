@@ -1,4 +1,7 @@
-No folder structure found in response.
+Created folder: /app/generated_files/models
+Created folder: /app/generated_files/app
+Created folder: /app/generated_files/schemas
+Created folder: /app/generated_files/routes
 
 
 Folder Structure created
@@ -6,16 +9,339 @@ Folder Structure created
 Now creating files in it
 
 
-No file contents section found in the response.
+Extracted File Contents:
+*
+No files found within the File Contents section.
+Created folder: /app/generated_files/routes
+Created folder: /app/generated_files/app
+Created folder: /app/generated_files/models
+Created folder: /app/generated_files/schemas
+
+
+Folder Structure created
+
+Now creating files in it
+
+
+Extracted File Contents:
+**app/__init__.py**
+```python
+# This file is intentionally left blank.
+```
+
+**app/main.py**
+```python
+from fastapi import FastAPI
+from routes.auth import router as auth_router
+from database import init_db
+
+app = FastAPI(title="User Authentication API", version="1.0.0")
+
+# Initialize the database
+init_db()
+
+app.include_router(auth_router, prefix="/api/v1/auth")
+```
+
+**models/__init__.py**
+```python
+# This file is intentionally left blank.
+```
+
+**models/user.py**
+```python
+from sqlalchemy import Column, Integer, String
+from database import Base
+
+class User(Base):
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+```
+
+**schemas/__init__.py**
+```python
+# This file is intentionally left blank.
+```
+
+**schemas/user.py**
+```python
+from pydantic import BaseModel, EmailStr
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    confirmPassword: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    username: str
+    email: EmailStr
+
+    class Config:
+        orm_mode = True
+```
+
+**routes/__init__.py**
+```python
+# This file is intentionally left blank.
+```
+
+**routes/auth.py**
+```python
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from models.user import User
+from schemas.user import UserCreate, UserLogin, UserResponse
+from database import get_db
+from passlib.context import CryptContext
+
+router = APIRouter()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+@router.post("/register", response_model=UserResponse, status_code=201)
+def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    if user.password != user.confirmPassword:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    
+    hashed_password = pwd_context.hash(user.password)
+    
+    db_user = db.query(User).filter((User.username == user.username) | (User.email == user.email)).first()
+    if db_user:
+        raise HTTPException(status_code=409, detail="Username or email already exists")
+    
+    new_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return new_user
+
+@router.post("/login", response_model=UserResponse)
+def login_user(user: UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.username == user.username).first()
+    if not db_user or not pwd_context.verify(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    return db_user
+```
+
+**database.py**
+```python
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def init_db():
+    Base.metadata.create_all(bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+```
+
+**requirements.txt**
+```
+fastapi
+uvicorn
+sqlalchemy
+passlib[bcrypt]
+pydantic
+```
+No files found within the File Contents section.
+Created folder: /app/generated_files/schemas
+Created folder: /app/generated_files/models
 Created folder: /app/generated_files/app
 Created folder: /app/generated_files/routes
+
+
+Folder Structure created
+
+Now creating files in it
+
+
+Extracted File Contents:
+**app/__init__.py**
+```python
+# This file can remain empty or contain package initialization code.
+```
+
+**app/main.py**
+```python
+from fastapi import FastAPI
+from routes.auth import router as auth_router
+from database import engine
+from models.user import Base
+
+# Create the database tables
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="User Authentication API", version="1.0.0")
+
+app.include_router(auth_router)
+```
+
+**models/__init__.py**
+```python
+# This file can remain empty or contain package initialization code.
+```
+
+**models/user.py**
+```python
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
+
+Base = declarative_base()
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+```
+
+**schemas/__init__.py**
+```python
+# This file can remain empty or contain package initialization code.
+```
+
+**schemas/user.py**
+```python
+from pydantic import BaseModel, EmailStr
+
+class UserRegister(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    confirmPassword: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+
+    class Config:
+        orm_mode = True
+```
+
+**routes/__init__.py**
+```python
+# This file can remain empty or contain package initialization code.
+```
+
+**routes/auth.py**
+```python
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from models.user import User
+from schemas.user import UserRegister, UserLogin, UserResponse
+from database import get_db
+from passlib.context import CryptContext
+from sqlalchemy.orm import Session
+from fastapi.responses import JSONResponse
+
+router = APIRouter()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+@router.post("/api/v1/auth/register", response_model=UserResponse, status_code=201)
+async def register_user(user: UserRegister, db: Session = Depends(get_db)):
+    if user.password != user.confirmPassword:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    
+    hashed_password = pwd_context.hash(user.password)
+    db_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
+    
+    db.add(db_user)
+    try:
+        db.commit()
+        db.refresh(db_user)
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Username or email already exists")
+    
+    return db_user
+
+@router.post("/api/v1/auth/login", response_model=UserResponse)
+async def login_user(user: UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.username == user.username).first()
+    if db_user is None or not pwd_context.verify(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    return db_user
+```
+
+**database.py**
+```python
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, Session
+
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"  # Use your preferred database URL
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+```
+
+**requirements.txt**
+```
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+passlib[bcrypt]
+```
+No files found within the File Contents section.
 Created folder: /app/generated_files/schemas
+Created folder: /app/generated_files/app
+Created folder: /app/generated_files/routes
 Created folder: /app/generated_files/models
 
 
-Folder Structure created
+Folder structure created.
 
-Now creating files in it
+Now creating files...
 
 
-An error occurred in extract_and_save_code: 'list' object has no attribute 'group'
+Files detected: 10
+File created: /app/generated_files/app/__init__.py
+File created: /app/generated_files/app/main.py
+File created: /app/generated_files/models/__init__.py
+File created: /app/generated_files/models/user.py
+File created: /app/generated_files/schemas/__init__.py
+File created: /app/generated_files/schemas/user.py
+File created: /app/generated_files/routes/__init__.py
+File created: /app/generated_files/routes/auth.py
+File created: /app/generated_files/database.py
+File created: /app/generated_files/requirements.txt
